@@ -1,0 +1,189 @@
+import pandas as pd
+import re
+from urllib.request import urlopen
+from bs4 import BeautifulSoup as BS
+import requests
+
+url = "https://www.imdb.com/chart/top?ref_=nv_mv_250"
+html = urlopen(url)
+
+url_link = BS(html, 'lxml')
+type(url_link)
+
+all_links = url_link.find_all('a', href=re.compile("/title/tt"))
+all_urls1 = []
+for link in all_links:
+#  print(link.get("href"))
+  all_urls1.append('http://www.imdb.com' + link.get("href"))
+#all_urls1
+
+all_urls = all_urls1[::2]
+all_urls.pop(0)
+length = len(all_urls)
+
+movie_name = []
+year = []
+imdbrating = []
+no_of_reviewers = []
+brd_rating = []
+movie_length = []
+genr = []
+rels_date = []
+story = []
+directors = []
+writer = []
+star = []
+keyw = []
+budg = []
+grossus = []
+cwgg = []
+pco = []
+
+for link in all_urls:
+  response = requests.get(link)
+  soup = BS(response.text, 'html.parser')
+    
+  text = soup.get_text()
+  #print(soup.text)
+
+  text1 = soup.find('h1')
+  str_cell1 = str(text1)
+  name_of_the_movie = BS(str_cell1, "lxml").get_text()
+  movie_name.append(name_of_the_movie)
+
+  text2 = soup.find('span', itemprop="ratingValue")
+  str_cell2 = str(text2)
+  imdb_rating = BS(str_cell2, "lxml").get_text()
+  float(imdb_rating)
+  imdbrating.append(imdb_rating)
+
+  text3 = soup.find('span', itemprop="ratingCount")
+  str_cell3 = str(text3)
+  number_of_reviewers = BS(str_cell3, "lxml").get_text()
+  no_of_reviewers.append(number_of_reviewers)
+
+  text4 = soup.find('div', class_ = 'subtext')
+  censor_board_rating = text4.contents[0]
+  brd_rating.append(censor_board_rating)
+
+  text5 = soup.find('span', id = "titleYear")
+  str_cell5 = str(text5)
+  year_released = BS(str_cell5, "lxml").get_text()
+  year.append(year_released)
+
+  text6 = soup.time
+  str_cell6 = str(text6)
+  length_of_the_movie = BS(str_cell6, "lxml").get_text()
+  movie_length.append(length_of_the_movie)
+
+  drm = soup.find(string=re.compile("Genres:"))
+  if pd.notnull(drm):
+    genres = drm.parent.parent
+    genres.h4.clear()
+    genr.append(genres.get_text(" ", strip=True))
+  else:
+    genr.append('Na')
+
+  rdate = soup.find(string=re.compile("Release Date:"))
+  if pd.notnull(rdate):
+    release_date = rdate.parent.parent
+    release_date.h4.clear()
+    release_date.span.clear()
+    rels_date.append(release_date.get_text("|", strip=True))
+  else:
+    rels_date.append('Na')
+
+  text8 = soup.find('div', class_ = 'summary_text')
+  str_cell8 = str(text8)
+  story_summary = BS(str_cell8, "lxml").get_text()
+  story.append(story_summary)
+  
+  direc = soup.find(string=re.compile("Director:"))
+  if pd.notnull(direc):
+    director = direc.parent.parent
+    directors.append(director.get_text(" ", strip=True))
+  else:
+    directors.append('Na')  
+  
+  writ = soup.find(string=re.compile("Writers:"))
+  if pd.notnull(writ):
+    writers = writ.parent.parent
+    writers.h4.clear()
+    writer.append(writers.get_text(" ", strip=True))
+  else:
+    writer.append('Na')
+  
+  stars1 = soup.find(string=re.compile("Stars:"))
+  if pd.notnull(stars1):
+    stars = stars1.parent.parent
+    stars.h4.clear()
+    seefull = stars.find(string=re.compile("See full..."))
+    seefull.parent.clear()
+    star.append(stars.get_text(" ", strip=True))
+  else:
+    star.append('Na')
+  
+  some_text = soup.find(string=re.compile("Plot Keywords:"))
+  if pd.notnull(some_text):
+    plot_keywords = some_text.parent.parent
+    plot_keywords.h4.clear()
+    plot_keywords.nobr.clear()
+    keyw.append(plot_keywords.get_text(" ", strip=True))
+  else:
+    keyw.append('Na')
+  
+  budget1 = soup.find(string=re.compile("Budget:"))
+  if pd.notnull(budget1):
+    budget = budget1.parent.parent
+    budget.h4.clear()
+    budg.append(budget.get_text(" ", strip=True))
+  else:
+    budg.append('Na')
+
+  gross = soup.find(string=re.compile("Gross USA:"))
+  if pd.notnull(gross):
+    gross_usa = gross.parent.parent
+    gross_usa.h4.clear()
+    grossus.append(gross_usa.get_text(" ", strip=True))
+  else:
+    grossus.append('Na')
+  
+  cwg = soup.find(string=re.compile("Cumulative Worldwide Gross:"))
+  if pd.notnull(cwg):
+    Cumulative_Worldwide_Gross = cwg.parent.parent
+    Cumulative_Worldwide_Gross.h4.clear()
+    cwgg.append(Cumulative_Worldwide_Gross.get_text(" ", strip=True))
+  else:
+    cwgg.append('Na')
+  
+  prod = soup.find(string=re.compile("Production Co:"))
+  if pd.notnull(prod):
+    production_co = prod.parent.parent
+    production_co.h4.clear()
+    production_co.span.clear()
+    pco.append(production_co.get_text(" ", strip=True))
+  else:
+    pco.append('Na')
+  
+  
+test_df = pd.DataFrame({'name of the movie': movie_name,
+'Link': all_urls,
+'year released': year,
+'imdb rating': imdbrating,
+'Number of reviewers': no_of_reviewers,
+'censor board rating': brd_rating,
+'length of the movie': movie_length,
+'genres': genr,
+'release date': rels_date,
+'story summary': story,
+'directors': directors,
+'writers': writer,
+'stars': star,
+'Plot Keywords List': keyw,
+'Budget': budg,
+'Gross USA': grossus,
+'Cumulative worldwide gross': cwgg,
+'production company': pco
+})
+print(test_df.info())
+test_df
